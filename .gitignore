@@ -1,4 +1,6 @@
 *.pyc
+*.bat
+*.lnk
 *~
 __pycache__
 env
