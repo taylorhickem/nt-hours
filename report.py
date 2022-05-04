@@ -4,8 +4,10 @@
 # Import
 # -----------------------------------------------------
 import sys
+import ctypes
 
 import nowthen as nt
+
 # -----------------------------------------------------
 # Module variables
 # -----------------------------------------------------
@@ -27,6 +29,14 @@ def update_events():
 def update_activity_report():
     pass
 
+# -----------------------------------------------------
+# User interface
+# -----------------------------------------------------
+
+
+def message_box(title, text, style):
+    return ctypes.windll.user32.MessageBoxW(0, text, title, style)
+
 
 # -----------------------------------------------------
 # Command line interface
@@ -36,6 +46,7 @@ def autorun():
         process_name = sys.argv[1]
         if process_name == 'update_events':
             update_events()
+            #message_box('update success', 'NowThen records are up-to-date', 1)
         elif process_name == 'update_activity_report':
             update_activity_report()
     else:

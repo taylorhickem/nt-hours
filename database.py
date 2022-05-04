@@ -92,7 +92,7 @@ def update_table(tbl,tblname,append=True):
 def get_sheet(rng_code):
     wkbid = GSHEET_CONFIG['wkbid']
     rng_config = GSHEET_CONFIG[rng_code]
-    rngid = rng_config['data'];
+    rngid = rng_config['data']
     hdrid = rng_config['header']
     valueList = gs_engine.get_rangevalues(wkbid, rngid)
     header = gs_engine.get_rangevalues(wkbid, hdrid)[0]
@@ -117,14 +117,17 @@ def get_sheet(rng_code):
     return rng
 
 
-def post_to_gsheet(df,rng_code,input_option='RAW'):
+def post_to_gsheet(df, rng_code, input_option='RAW'):
     #values is a 2D list [[]]
     wkbid = GSHEET_CONFIG['wkbid']
     rngid = GSHEET_CONFIG[rng_code]['data']
-    values = df.values.astype('str').tolist()
-    gs_engine.clear_rangevalues(wkbid,rngid)
+    gs_engine.clear_rangevalues(wkbid, rngid)
     #write values - this method writes everything as a string
-    gs_engine.set_rangevalues(wkbid,rngid,values,input_option)
+    if input_option == 'RAW':
+        values = df.values.astype('str').tolist()
+    else:
+        values = df.values.tolist()
+    gs_engine.set_rangevalues(wkbid, rngid, values, input_option)
 
 
 # -----------------------------------------------------
