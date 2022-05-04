@@ -15,11 +15,12 @@ from database import CSVDirectory
 
 
 #constants
+WINDOW_YEARS = 2
 HRS_IN_WEEK = 168
 HRS_IN_DAY = 24
 DELIM = '#'
-EVENT_FIELDS = ['timestamp','date','time','activity',
-                'duration_hrs','year','month','week','DOW','comment']
+EVENT_FIELDS = ['timestamp', 'date', 'time', 'activity',
+                'duration_hrs', 'year', 'month', 'week', 'DOW', 'comment']
 
 
 #dynamic
@@ -79,17 +80,36 @@ def update_events():
                 events = new_events
                 has_events = True
             else:
-                #03 append to events db
+                # 03 append to events db
                 events = events.append(new_events)
     if has_events:
-        #04 drop duplicates
+
+        # 04 drop duplicates and sort
         events.drop_duplicates(inplace=True)
-        #05 push updates to sqlite
+        events.sort_index(inplace=True)
+
+        # 05 push updates to sqlite
         db.update_table(events.reset_index()[EVENT_FIELDS],'event',False)
-        #06 push updates to gsheet
-        db.post_to_gsheet(events[
-            [f for f in EVENT_FIELDS if not f == 'timestamp']],'events','USER_ENTERED')
-        #07 flush csv directory
+
+        # 06 format fields for gsheet
+        rngcode = 'events'
+
+        # 06.01 date and time to str
+        date_format = db.GSHEET_CONFIG[rngcode]['date_format']
+        time_format = db.GSHEET_CONFIG[rngcode]['time_format']
+        events['date'] = events['date'].apply(lambda x: dt.datetime.strftime(x, date_format))
+        events['time'] = events['time'].apply(lambda x: x.strftime(time_format))
+
+        # 06.02 fill empty str for blank comment fields
+        events['comment'].fillna('', inplace=True)
+
+        #07 push recent events to gsheet
+        min_year = events['year'].max() - WINDOW_YEARS + 1
+        recent = events[events['year'] >= min_year].copy()
+        db.post_to_gsheet(recent[
+            [f for f in EVENT_FIELDS if not f == 'timestamp']], rngcode, 'USER_ENTERED')
+
+        #08 flush csv directory
         flush_csv()
 
 
