@@ -1,6 +1,8 @@
 # nt-hours
 time tracking report using NowThen time tracker app by AngryAztec manual upload to Google Drive, Google Sheets for reporting and MySQL Server to store the data
 
+For details, see the app documentation in Notion: [hoursApp](https://rightful-sweater-058.notion.site/hoursApp-1bb08e7c9e8d45b38fb832a3b3422771)
+
 ## setup
 
 1. install the module into your python project from the github repository url using pip
