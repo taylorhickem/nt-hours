@@ -6,7 +6,7 @@
 import sys
 import ctypes
 
-import nowthen as nt
+from nthours import nowthen as nt
 
 # -----------------------------------------------------
 # Module variables
@@ -42,7 +42,7 @@ def message_box(title, text, style):
 # Command line interface
 # -----------------------------------------------------
 def autorun():
-    if len(sys.argv)>1:
+    if len(sys.argv) > 1:
         process_name = sys.argv[1]
         if process_name == 'update_events':
             update_events()
