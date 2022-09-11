@@ -114,7 +114,7 @@ def get_sheet(rng_code):
         data_types = rng_config['data_types']
         for field in data_types:
             typeId = data_types[field]
-            if not typeId in ['str', 'date']:
+            if not typeId in ['str', 'date', 'time']:
                 if typeId in NUMERIC_TYPES:
                     # to deal with conversion from '' to nan
                     if typeId in ['float']:  # nan compatible
@@ -123,6 +123,10 @@ def get_sheet(rng_code):
                         rng[field] = pd.to_numeric(rng[field]).fillna(0).astype(typeId)
                 else:
                     rng[field] = rng[field].astype(typeId)
+            if typeId == 'time':
+                if 'time_format' in rng_config:
+                    rng[field] = rng[field].apply(
+                        lambda x: dt.datetime.strptime(x, rng_config['time_format']))
             if typeId == 'date':
                 if 'date_format' in rng_config:
                     rng[field] = rng[field].apply(

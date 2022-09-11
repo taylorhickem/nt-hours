@@ -217,6 +217,13 @@ def standardForm(data):
     return std
 
 
+def record_date_from_filename(rcd_filename):
+    rcd_label = 'nowthen_then_day_'
+    rcd_date_str = rcd_filename.replace(rcd_label, '')[:-4]
+    rcd_date = dt.datetime.strptime(rcd_date_str, '%Y-%m-%d').date()
+    return rcd_date
+
+
 #-----------------------------------------------------
 # note 01
 #-----------------------------------------------------
