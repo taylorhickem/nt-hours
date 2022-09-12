@@ -5,7 +5,7 @@
 # -----------------------------------------------------
 import os
 import shutil
-import utilities.fso as fso
+#import utilities.fso as fso
 import json
 import pandas as pd
 import datetime as dt
@@ -146,55 +146,6 @@ def post_to_gsheet(df, rng_code, input_option='RAW'):
         values = df.values.tolist()
     gs_engine.set_rangevalues(wkbid, rngid, values, input_option)
 
-
-# -----------------------------------------------------
-# CSV file directory
-# -----------------------------------------------------
-
-
-class CSVDirectory(object):
-    def __init__(self,directory_path):
-        self.path = directory_path
-        self.load_files()
-
-    def load_files(self):
-        self.files = fso.getFilesInFolder(self.path)
-        if len(self.files)>0:
-            self.csv_files = [f for f in self.files if '.csv' in f]
-
-    def get_tables(self):
-        tbls = {}
-        if len(self.csv_files)>0:
-            for f in self.csv_files:
-                try:
-                    df = pd.read_csv(self.path + '\\' + f)
-                    tbls[f] = df
-                except:
-                    pass
-        return tbls
-
-    def has_files(self):
-        return len(self.files)>0
-
-    def has_csv(self):
-        csv_check = False
-        if self.has_files():
-            csv_check = len(self.csv_files)>0
-        return csv_check
-
-    def flush(self,new_directory=None):
-        if self.has_files():
-            for f in self.files:
-                src = self.path + '\\' + f
-                if new_directory is None:
-                    os.remove(src)
-                else:
-                    if new_directory == '':
-                        dest = f
-                    else:
-                        dest = new_directory + '\\' + f
-                    shutil.move(src,dest)
-            self.__init__(self.path)
 
 # -----------------------------------------------------
 # END
