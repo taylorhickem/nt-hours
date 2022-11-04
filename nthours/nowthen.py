@@ -112,8 +112,17 @@ def update_events():
         # 06.01 date and time to str
         date_format = db.GSHEET_CONFIG[rngcode]['date_format']
         time_format = db.GSHEET_CONFIG[rngcode]['time_format']
+
+        def event_time_convert(time_value):
+            time_str = ''
+            if isinstance(time_value, str):
+                time_str = time_value[:-3]
+            else:
+                time_str = time_value.strftime(time_format)
+            return time_str
+
         events['date'] = events['date'].apply(lambda x: dt.datetime.strftime(x, date_format))
-        events['time'] = events['time'].apply(lambda x: x.strftime(time_format))
+        events['time'] = events['time'].apply(lambda x: event_time_convert(x))
 
         # 06.02 fill empty str for blank comment fields
         events['comment'].fillna('', inplace=True)
