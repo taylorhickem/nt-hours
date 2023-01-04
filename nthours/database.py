@@ -22,7 +22,7 @@ from nthours import mysql
 # constants
 NUMERIC_TYPES = ['int', 'float']
 SQL_DB_NAME = 'sqlite:///hours.db'
-DB_SOURCE = 'remote'    #to use local sqlite, change to 'local'
+DB_SOURCE = 'local'    #to use local sqlite, change to 'local'
 
 # dynamic : config
 CONFIG = {}
