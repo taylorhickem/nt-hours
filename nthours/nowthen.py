@@ -7,6 +7,7 @@ import pandas as pd
 import datetime as dt
 from nthours import database as db
 from nthours.time_series import TimeSeriesTable
+from nthours import toggl
 #from database import CSVDirectory   #deprecated, see note 01
 #-----------------------------------------------------
 # Module variables
@@ -182,7 +183,7 @@ def get_tables_from_brecords():  #see note 01
             #import csv to pandas DataFrame
             df = pd.read_csv(events_filename)
             db.os.remove(events_filename)
-            tables['filename'] = df
+            tables[filename] = df
 
     return tables
 
@@ -201,17 +202,21 @@ def events_from_csv(data, filename=''):
     '''
     try:
         #01 convert the dates and create activity label
-        std = standardForm(data)
+        std = toggl.standard_form(data)
+        # std = standardForm(data)      # deprecated, NowThen method
+
         #02 add year, month, week
         events = TimeSeriesTable(std, dtField='timestamp').ts
+
     except:
         events = None
+
     return events
 
 
 def standardForm(data):
     std = data.copy()
-    std['Parent Task'].fillna('',inplace=True)
+    std['Parent Task'].fillna('', inplace=True)
     std['activity'] = std.apply(lambda x: x['Parent Task'] + DELIM + x['Task Name'], axis=1)
     std['date'] = std['Start Date'].apply(lambda x:
                                   dt.datetime.strptime(x, '%d/%m/%y').date())
@@ -219,8 +224,8 @@ def standardForm(data):
                                   dt.datetime.strptime(x, '%H:%M:%S').time())
     std['timestamp'] = std.apply(lambda x:
                                 dt.datetime.combine(x['date'], x['time']), axis=1)
-    std.rename(columns={'Duration (hours)':'duration_hrs',
-                        'Comment':'comment'},inplace=True)
+    std.rename(columns={'Duration (hours)': 'duration_hrs',
+                        'Comment': 'comment'}, inplace=True)
     del std['Start Date'], std['Start Time'], std['End Date'], std['End Time']
     del std['Parent Task'], std['Task Name']
     return std
@@ -232,27 +237,6 @@ def record_date_from_filename(rcd_filename):
     rcd_date = dt.datetime.strptime(rcd_date_str, '%Y-%m-%d').date()
     return rcd_date
 
-
-#-----------------------------------------------------
-# note 01
-#-----------------------------------------------------
-# old method used csv files on local pc in combination with Google Backup and Sync (GBS)
-# GBS added a security feature to not allow fso scripts to manage file operations
-# consequently, the feature was defeated, and replaced by using Google Drive API
-# directly to perform file operations in the cloud.
-
-# old methods:
-
-#def local_load_csv():
-#    global new_records
-#    new_rcd_path = directory_path + DIRECTORY_CONFIG['new_records']
-#    new_records = CSVDirectory(new_rcd_path)
-
-
-#def local_flush_csv():
-#    global new_records
-#    if new_records.has_files():
-#        new_records.flush(directory_path)
 
 #-----------------------------------------------------
 # END
