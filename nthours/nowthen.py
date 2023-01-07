@@ -8,7 +8,6 @@ import datetime as dt
 from nthours import database as db
 from nthours.time_series import TimeSeriesTable
 from nthours import toggl
-#from database import CSVDirectory   #deprecated, see note 01
 #-----------------------------------------------------
 # Module variables
 #-----------------------------------------------------
@@ -22,18 +21,12 @@ DELIM = '#'
 EVENT_FIELDS = ['timestamp', 'date', 'time', 'activity',
                 'duration_hrs', 'year', 'month', 'week', 'DOW', 'comment']
 MIME_TYPE_CSV = 'text/csv'
-GDRIVE_CONFIG = {}      # see note 01
-GDRIVE_FOLDER_IDS = {}  # see note 01
+GDRIVE_CONFIG = {}
+GDRIVE_FOLDER_IDS = {}
 
 #dynamic
-#directory_path = ''    #deprecated, see note 01
-#DIRECTORY_CONFIG = {}  #deprecated, see note 01
 events = None
-new_records_asbytes = []    # see note 01
-
-
-# custom class objects from other modules
-#new_records = None  #deprecated, see note 01
+new_records_asbytes = []
 
 
 #-----------------------------------------------------
@@ -44,21 +37,12 @@ new_records_asbytes = []    # see note 01
 def load():
     db.load()
     load_gdrive_config()
-    #load_directory()   #deprecated, see note 01
 
 
 def load_gdrive_config():
     global GDRIVE_CONFIG, GDRIVE_FOLDER_IDS
     GDRIVE_CONFIG = db.json.load(open('gdrive_config.json'))
     GDRIVE_FOLDER_IDS = GDRIVE_CONFIG['folder_ids']
-
-
-def load_directory():   #deprecated, see note 01
-    global directory_path, DIRECTORY_CONFIG
-    directory_path = db.CONFIG['nowthen_directory']
-    DIRECTORY_CONFIG = db.json.load(open(
-        directory_path + '\directory.json'
-    ))
 
 #-----------------------------------------------------
 # Procedures
@@ -71,12 +55,9 @@ def update_events():
     global events
     #01 load csv files
     gdrive_load_csv()
-    #local_load_csv()   #deprecated, see note 01
     has_events = load_events()
     if len(new_records_asbytes) > 0:
-    #if new_records.has_csv():  #deprecated, see note 01
         tables = get_tables_from_brecords()
-        #tables = new_records.get_tables()  #deprecated, see note 01
 
         #02 create new events from csv
         eventRcds = []
@@ -89,7 +70,6 @@ def update_events():
                 pass
         if len(eventRcds) > 0:
             new_events = pd.concat(eventRcds)
-            has_events = load_events()
             if not has_events:
                 events = new_events
                 has_events = True
@@ -99,7 +79,7 @@ def update_events():
     if has_events:
 
         # 04 drop duplicates and sort
-        events.drop_duplicates(inplace=True)
+        events = events[~events.index.duplicated(keep='first')]
         events.sort_index(inplace=True)
 
         # 05 push updates to sqlite
@@ -136,7 +116,6 @@ def update_events():
 
         #08 flush csv directory
         gdrive_flush_csv()
-        #local_flush_csv()  #deprecated, see note 01
 
 
 def gdrive_load_csv():  #see note 01
@@ -203,7 +182,7 @@ def events_from_csv(data, filename=''):
     try:
         #01 convert the dates and create activity label
         std = toggl.standard_form(data)
-        # std = standardForm(data)      # deprecated, NowThen method
+        # std = nt_standardForm(data)      # deprecated, NowThen method
 
         #02 add year, month, week
         events = TimeSeriesTable(std, dtField='timestamp').ts
@@ -214,7 +193,7 @@ def events_from_csv(data, filename=''):
     return events
 
 
-def standardForm(data):
+def nt_standardForm(data):
     std = data.copy()
     std['Parent Task'].fillna('', inplace=True)
     std['activity'] = std.apply(lambda x: x['Parent Task'] + DELIM + x['Task Name'], axis=1)
