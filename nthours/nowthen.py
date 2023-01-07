@@ -1,4 +1,4 @@
-''' parsing NowThen records into data model
+''' parsing Toggl records into data model
 '''
 #-----------------------------------------------------
 # Import
@@ -14,7 +14,7 @@ from nthours import toggl
 
 
 #constants
-WINDOW_YEARS = 2
+WINDOW_YEARS = 1
 HRS_IN_WEEK = 168
 HRS_IN_DAY = 24
 DELIM = '#'
@@ -50,12 +50,13 @@ def load_gdrive_config():
 
 
 def update_events():
-    '''Update events database sqlite and gsheet with new NowThen records
+    '''Update events database sqlite and gsheet with new Toggl records
     '''
     global events
+
     #01 load csv files
+    has_new_events = False
     gdrive_load_csv()
-    has_events = load_events()
     if len(new_records_asbytes) > 0:
         tables = get_tables_from_brecords()
 
@@ -68,15 +69,17 @@ def update_events():
                     eventRcds.append(eventRcd)
             except:
                 pass
-        if len(eventRcds) > 0:
-            new_events = pd.concat(eventRcds)
-            if not has_events:
-                events = new_events
-                has_events = True
-            else:
-                # 03 append to events db
-                events = events.append(new_events)
-    if has_events:
+        has_new_events = (len(eventRcds) > 0)
+    has_events = load_events()
+
+    if has_new_events:
+        new_events = pd.concat(eventRcds)
+
+        if has_events:
+            events = events.append(new_events)
+        else:
+            events = new_events.copy()
+            has_events = True
 
         # 04 drop duplicates and sort
         events = events[~events.index.duplicated(keep='first')]
@@ -87,6 +90,7 @@ def update_events():
                         'event',
                         False)
 
+    if has_events:
         # 06 format fields for gsheet
         rngcode = 'events'
 
@@ -118,7 +122,7 @@ def update_events():
         gdrive_flush_csv()
 
 
-def gdrive_load_csv():  #see note 01
+def gdrive_load_csv():
     #store results in 'new_records_as_bytes'
     file_references = db.gdrive.get_files_in_folder(
         folder_name='',
@@ -137,7 +141,7 @@ def gdrive_load_csv():  #see note 01
             new_records_asbytes.append(rcd)
 
 
-def gdrive_flush_csv():  #see note 01
+def gdrive_flush_csv():
     if len(new_records_asbytes) > 0:
         file_ids = [f['id'] for f in new_records_asbytes]
         db.gdrive.move_files_to_folder(
@@ -147,7 +151,7 @@ def gdrive_flush_csv():  #see note 01
         )
 
 
-def get_tables_from_brecords():  #see note 01
+def get_tables_from_brecords():
     events_filename = 'events.csv'
     tables = {}
     if len(new_records_asbytes) > 0:
@@ -177,7 +181,7 @@ def load_events():
 
 
 def events_from_csv(data, filename=''):
-    ''' create events from NowThen data table
+    ''' create events from Toggl data table
     '''
     try:
         #01 convert the dates and create activity label
@@ -192,30 +196,29 @@ def events_from_csv(data, filename=''):
 
     return events
 
+# deprecated method
+#def nt_standardForm(data):
+#    std = data.copy()
+#    std['Parent Task'].fillna('', inplace=True)
+#    std['activity'] = std.apply(lambda x: x['Parent Task'] + DELIM + x['Task Name'], axis=1)
+#    std['date'] = std['Start Date'].apply(lambda x:
+#                                  dt.datetime.strptime(x, '%d/%m/%y').date())
+#    std['time'] = std['Start Time'].apply(lambda x:
+#                                  dt.datetime.strptime(x, '%H:%M:%S').time())
+#    std['timestamp'] = std.apply(lambda x:
+#                                dt.datetime.combine(x['date'], x['time']), axis=1)
+#    std.rename(columns={'Duration (hours)': 'duration_hrs',
+#                        'Comment': 'comment'}, inplace=True)
+#    del std['Start Date'], std['Start Time'], std['End Date'], std['End Time']
+#    del std['Parent Task'], std['Task Name']
+#    return std
 
-def nt_standardForm(data):
-    std = data.copy()
-    std['Parent Task'].fillna('', inplace=True)
-    std['activity'] = std.apply(lambda x: x['Parent Task'] + DELIM + x['Task Name'], axis=1)
-    std['date'] = std['Start Date'].apply(lambda x:
-                                  dt.datetime.strptime(x, '%d/%m/%y').date())
-    std['time'] = std['Start Time'].apply(lambda x:
-                                  dt.datetime.strptime(x, '%H:%M:%S').time())
-    std['timestamp'] = std.apply(lambda x:
-                                dt.datetime.combine(x['date'], x['time']), axis=1)
-    std.rename(columns={'Duration (hours)': 'duration_hrs',
-                        'Comment': 'comment'}, inplace=True)
-    del std['Start Date'], std['Start Time'], std['End Date'], std['End Time']
-    del std['Parent Task'], std['Task Name']
-    return std
-
-
-def record_date_from_filename(rcd_filename):
-    rcd_label = 'nowthen_then_day_'
-    rcd_date_str = rcd_filename.replace(rcd_label, '')[:-4]
-    rcd_date = dt.datetime.strptime(rcd_date_str, '%Y-%m-%d').date()
-    return rcd_date
-
+# deprecated method
+#def record_date_from_filename(rcd_filename):
+#    rcd_label = 'nowthen_then_day_'
+#    rcd_date_str = rcd_filename.replace(rcd_label, '')[:-4]
+#    rcd_date = dt.datetime.strptime(rcd_date_str, '%Y-%m-%d').date()
+#    return rcd_date
 
 #-----------------------------------------------------
 # END
