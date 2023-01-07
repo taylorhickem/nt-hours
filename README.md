@@ -1,5 +1,5 @@
 # nt-hours
-time tracking report using NowThen time tracker app by AngryAztec manual upload to Google Drive, Google Sheets for reporting and MySQL Server to store the data
+time tracking report using [Toggl Track](https://track.toggl.com/timer) time tracker app manual upload to Google Drive, Google Sheets for reporting and MySQL Server to store the data
 
 For details, see the app documentation in Notion: [hoursApp](https://rightful-sweater-058.notion.site/hoursApp-1bb08e7c9e8d45b38fb832a3b3422771)
 
