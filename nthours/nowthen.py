@@ -21,12 +21,9 @@ DELIM = '#'
 EVENT_FIELDS = ['timestamp', 'date', 'time', 'activity',
                 'duration_hrs', 'year', 'month', 'week', 'DOW', 'comment']
 MIME_TYPE_CSV = 'text/csv'
-GDRIVE_CONFIG = {}
-GDRIVE_FOLDER_IDS = {}
 
 #dynamic
 events = None
-new_records_asbytes = []
 
 
 #-----------------------------------------------------
@@ -36,45 +33,25 @@ new_records_asbytes = []
 
 def load():
     db.load()
-    load_gdrive_config()
-
-
-def load_gdrive_config():
-    global GDRIVE_CONFIG, GDRIVE_FOLDER_IDS
-    GDRIVE_CONFIG = db.json.load(open('gdrive_config.json'))
-    GDRIVE_FOLDER_IDS = GDRIVE_CONFIG['folder_ids']
 
 #-----------------------------------------------------
 # Procedures
 #-----------------------------------------------------
 
 
-def update_events():
+def update_events(report_date=None):
     '''Update events database sqlite and gsheet with new Toggl records
     '''
     global events
 
-    #01 load csv files
-    has_new_events = False
-    gdrive_load_csv()
-    if len(new_records_asbytes) > 0:
-        tables = get_tables_from_brecords()
+    #01 load new events
+    new_events = events_std_format(None, '', report_date)
+    has_new_events = len(new_events) > 0
 
-        #02 create new events from csv
-        eventRcds = []
-        for t in tables:
-            try:
-                eventRcd = events_from_csv(tables[t], t)
-                if not eventRcd is None:
-                    eventRcds.append(eventRcd)
-            except:
-                pass
-        has_new_events = (len(eventRcds) > 0)
+    #02 load db events
     has_events = load_events()
 
     if has_new_events:
-        new_events = pd.concat(eventRcds)
-
         if has_events:
             events = events.append(new_events)
         else:
@@ -118,58 +95,6 @@ def update_events():
         db.post_to_gsheet(recent[
             [f for f in EVENT_FIELDS if not f == 'timestamp']], rngcode, 'USER_ENTERED')
 
-        #08 flush csv directory
-        gdrive_flush_csv()
-
-
-def gdrive_load_csv():
-    #store results in 'new_records_as_bytes'
-    file_references = db.gdrive.get_files_in_folder(
-        folder_name='',
-        folder_id=GDRIVE_FOLDER_IDS['new_records'],
-        include_subfolders=False,
-        mime_type=MIME_TYPE_CSV
-    )
-    if len(file_references) > 0:
-        for f in file_references:
-            bdata = db.gdrive.download_file(f['id'])
-            rcd = {
-                'id': f['id'],
-                'filename': f['name'],
-                'bdata': bdata
-            }
-            new_records_asbytes.append(rcd)
-
-
-def gdrive_flush_csv():
-    if len(new_records_asbytes) > 0:
-        file_ids = [f['id'] for f in new_records_asbytes]
-        db.gdrive.move_files_to_folder(
-            file_ids,
-            destination_id=GDRIVE_FOLDER_IDS['root'],
-            source_id=GDRIVE_FOLDER_IDS['new_records']
-        )
-
-
-def get_tables_from_brecords():
-    events_filename = 'events.csv'
-    tables = {}
-    if len(new_records_asbytes) > 0:
-        for rcd in new_records_asbytes:
-            #write byte file to csv
-            filename = rcd['filename']
-            bdata = rcd['bdata']
-            with open(events_filename, "wb") as bevents:
-                bevents.write(bdata)
-            bevents.close()
-
-            #import csv to pandas DataFrame
-            df = pd.read_csv(events_filename)
-            db.os.remove(events_filename)
-            tables[filename] = df
-
-    return tables
-
 
 def load_events():
     global events
@@ -180,12 +105,15 @@ def load_events():
     return has_events
 
 
-def events_from_csv(data, filename=''):
+def events_std_format(data, filename='', report_date=None):
     ''' create events from Toggl data table
     '''
     try:
         #01 convert the dates and create activity label
-        std = toggl.standard_form(data)
+        if not report_date:
+            report_date = dt.datetime.today().strftime(toggl.TOGGL_DATE_FORMAT)
+        std = toggl.std_events_from_api(report_date)
+        # std = toggl.standard_form(data)  # deprecated
         # std = nt_standardForm(data)      # deprecated, NowThen method
 
         #02 add year, month, week
@@ -195,31 +123,3 @@ def events_from_csv(data, filename=''):
         events = None
 
     return events
-
-# deprecated method
-#def nt_standardForm(data):
-#    std = data.copy()
-#    std['Parent Task'].fillna('', inplace=True)
-#    std['activity'] = std.apply(lambda x: x['Parent Task'] + DELIM + x['Task Name'], axis=1)
-#    std['date'] = std['Start Date'].apply(lambda x:
-#                                  dt.datetime.strptime(x, '%d/%m/%y').date())
-#    std['time'] = std['Start Time'].apply(lambda x:
-#                                  dt.datetime.strptime(x, '%H:%M:%S').time())
-#    std['timestamp'] = std.apply(lambda x:
-#                                dt.datetime.combine(x['date'], x['time']), axis=1)
-#    std.rename(columns={'Duration (hours)': 'duration_hrs',
-#                        'Comment': 'comment'}, inplace=True)
-#    del std['Start Date'], std['Start Time'], std['End Date'], std['End Time']
-#    del std['Parent Task'], std['Task Name']
-#    return std
-
-# deprecated method
-#def record_date_from_filename(rcd_filename):
-#    rcd_label = 'nowthen_then_day_'
-#    rcd_date_str = rcd_filename.replace(rcd_label, '')[:-4]
-#    rcd_date = dt.datetime.strptime(rcd_date_str, '%Y-%m-%d').date()
-#    return rcd_date
-
-#-----------------------------------------------------
-# END
-#-----------------------------------------------------
